@@ -12,7 +12,7 @@ OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"
 
 aws_access_key = Variable.get("AWS_ACCESS_KEY", default_var="your_default_access_key")  
 aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
-
+ 
 @dag(  
     dag_id=DAG_ID,  
     schedule_interval="* * * * *",  
