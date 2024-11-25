@@ -15,13 +15,12 @@ aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret
  
 @dag(  
     dag_id=DAG_ID,  
-    schedule_interval="* * * * *",  
+    schedule_interval="* * * * *", 
     start_date=datetime(2024, 11, 25),  
-    dagrun_timeout=timedelta(minutes=1),
+    dagrun_timeout=timedelta(minutes=5),  
     catchup=False,  
     is_paused_upon_creation=False,  
 )  
-
 def process_csv_files():  
 
     @task  
@@ -29,22 +28,18 @@ def process_csv_files():
         """Fetch file keys from the specified S3 directory."""  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)  
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
-        
         file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]  
         return file_keys  
 
     @task  
-    def process_file(file_key):  
+    def process_file(file_key: str):  
         """Download the file, process it, and upload it back to S3."""  
-        # Fetch file from S3  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)  
         response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
         data = pd.read_csv(response['Body'])  
         
-        # Example of data cleansing  
         data_cleaned = data.dropna()  
         
-        # Save back to S3  
         output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"  
         csv_buffer = data_cleaned.to_csv(index=False).encode()  
         
@@ -62,15 +57,14 @@ def process_csv_files():
 
     start = start_message()  
 
-    # This task will obtain the list of CSV file keys  
     file_keys = fetch_files_from_s3()  
-
-    # This maps over the list of keys and processes each file individually  
-    processed_files = file_keys.map(process_file)  
-
     end = end_message()  
 
-    # Define task dependencies  
-    start >> processed_files >> end  
+    processed_tasks = []  
+    
+    for file_key in file_keys.output:  
+        processed_task = process_file(file_key)  
+        start >> processed_task >> end  
+        processed_tasks.append(processed_task)  
 
 dag_instance = process_csv_files()  
