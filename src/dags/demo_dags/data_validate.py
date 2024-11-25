@@ -15,7 +15,7 @@ aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret
  
 @dag(  
     dag_id=DAG_ID,  
-    schedule_interval="* * * * *", 
+    schedule_interval="* * * * *",  # Run every minute  
     start_date=datetime(2024, 11, 25),  
     dagrun_timeout=timedelta(minutes=5),  
     catchup=False,  
@@ -25,46 +25,45 @@ def process_csv_files():
 
     @task  
     def fetch_files_from_s3() -> list:  
-        """Fetch file keys from the specified S3 directory."""  
+        """Retrieve CSV file keys from a designated S3 directory."""  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)  
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
+        
         file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]  
         return file_keys  
 
     @task  
     def process_file(file_key: str):  
-        """Download the file, process it, and upload it back to S3."""  
+        """Download, cleanse, and upload CSV file data back to S3."""  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)  
         response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
         data = pd.read_csv(response['Body'])  
-        
+
+        # Data cleansing (example: removing NaNs)  
         data_cleaned = data.dropna()  
-        
+
+        # Writing back to S3  
         output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"  
         csv_buffer = data_cleaned.to_csv(index=False).encode()  
-        
         s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)  
 
-        return f"File {file_key} processed and saved to {output_key}"  
+        return f"Processed and saved: {output_key}"  
 
     @task  
     def start_message():  
-        print("Starting the CSV processing.")  
+        print("Initiating the CSV processing workflow.")  
 
     @task  
     def end_message():  
-        print("CSV processing completed.")  
+        print("CSV processing workflow completed.")  
 
     start = start_message()  
 
     file_keys = fetch_files_from_s3()  
-    end = end_message()  
 
-    processed_tasks = []  
-    
+    # Airflow's looping with task instances for each file  
     for file_key in file_keys.output:  
-        processed_task = process_file(file_key)  
-        start >> processed_task >> end  
-        processed_tasks.append(processed_task)  
+        p = process_file(file_key)  
+        start >> p >> end_message()  
 
 dag_instance = process_csv_files()  
