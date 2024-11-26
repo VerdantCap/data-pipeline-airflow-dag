@@ -5,7 +5,7 @@ import pandas as pd
 import os  
 from airflow.models import Variable  
 
-DAG_ID = "Process_CSV_Files"  
+DAG_ID = "Validate_CSV_Files"  
 S3_BUCKET_NAME = "airbyte-state-dev-us-east-2-genie-platforms"  
 S3_DIRECTORY = "air-byte-sync-destination/zoominfo-preview/"  
 OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"  
