@@ -39,7 +39,7 @@ def process_csv_files():
     @task  
     def process_files(file_keys: list):  
         """Download, process, and upload each CSV file."""  
-        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)  
+        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
         
         for file_key in file_keys:  
             response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
