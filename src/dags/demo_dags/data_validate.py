@@ -12,6 +12,7 @@ OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"
 
 aws_access_key = Variable.get("AWS_ACCESS_KEY", default_var="your_default_access_key")  
 aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
+aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
  
 @dag(  
     dag_id=DAG_ID,  
@@ -26,7 +27,7 @@ def process_csv_files():
     @task  
     def fetch_files_from_s3() -> list:  
         """Retrieve CSV file keys from the designated S3 directory."""  
-        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)  
+        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
         file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]  
         return file_keys  
