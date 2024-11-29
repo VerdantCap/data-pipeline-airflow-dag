@@ -8,8 +8,24 @@ from airflow.models import Variable
 # from modules.api.zerobounce import validate_email
 # from modules.api.serper import serper_website
 import requests
-zero_bounce_api_key = "d049596d57d549d0ade2bcbf6d158204"
+from typing import Dict
 
+serper_api_key = "sk_b1edcda9a6bb0ac0d26c9c3936ad36183cf775f2"
+zero_bounce_api_key = Variable.get("ZERO_BOUNCE_API_KEY", default_var="your_zero_bounce_api_key")  
+serper_api_key = Variable.get("SERPER_API_KEY", default_var="your_default_secret_key")  
+scrapin_api_key = Variable.get("SCRAPIN_API_KEY", default_var="you_default_secret_key")
+DAG_ID = "Validate_CSV_Files"  
+S3_BUCKET_NAME = "airbyte-state-dev-us-east-2-genie-platforms"  
+S3_DIRECTORY = "air-byte-sync-destination/zoominfo-preview/"  
+OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"  
+
+# aws_access_key = Variable.get("AWS_ACCESS_KEY", default_var="your_default_access_key")  
+# aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
+# aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
+
+aws_access_key="ASIA4RCAOLGLCEZRJYW5"
+aws_secret_key="wtxa0OZi1KAB8tkSO78jDnyOSbTerrRXnIIdOsoQ"
+aws_session_token="IQoJb3JpZ2luX2VjENH//////////wEaCXVzLWVhc3QtMiJHMEUCIDUa7HY7Bg8Z8OsR6CkPhyGIXCC6lZFxY3Os8+3SrCxOAiEAhNrElq3AVLnJMuK7dxve/nCeRAVWBVUjkdf4vv2CcP8qmgMIehAAGgw4NjEyNzYxMDEwMTQiDL51jeFsq0iSQPjQnir3An+5BK5ql5JFZndPhK+mpDujjC73+LMH900EWcFNg7CFlY4y70XTjOWVu9+CyhnV3cIsereXQlh8TPR2loqBr+p+kDJUD9jrmyWTasyr00/lGfr3xh6pDjS/vELT2gWhSZ/fCxDXdrKA9mbc61x5BMKEXNxuFtmlcVLKn+Ur4kcnltHgZsmsIyBKju7N6tnBBK8/3HZbLrUHTOdGT7ZHmBQroJ158EoRvm7q4VRXW8XL/+Fg1NovSildMlmO6nZ0BtXMnDCrSfbSx3Knm6svEV3L+t+zBiTtCc8UVY6ENUPM4aMlaUWWCsy9DJ7cK2VkQVZkggfakcq3WqQkwVU6EU8J6UfCtjnFq+AF01QgnnhdRdzpR24i+2JfhOiVakL68bzSAoWKmcZWeM2a2D4JY+BipJKGihOWCr2JTa4OGJdFIvvfAgxhvkkH+n4M4bkPULzm/qtH2/1RE6sIxsDPIqaGs2hBhMkMaNRGbeib/dk6+fubM/Py2zDO3Ke6BjqmAUC4EfvUGl8H7IuYqUxfTdM29Mi3GMPiG4vgQk60aqxiTMtFdO9Qp3Hqu06VlUHV3d7P0/fDrt0oLY36BvvyOq/F/+7Kh2h+i2nhXETF7cj7jNy0+ZA0uVuzOhVimmH1QcIkRqmY4R3Hd9b0BWy7N8FHD82wFv4F5EJKhnQFQ+q+SksjRRB44g2U8b0AjNb8MItCEuFAVFP4BnQqz6wngSPkjcRBDx8="
 
 def validate_email(email: str) -> str:  
     try:  
@@ -26,9 +42,6 @@ def validate_email(email: str) -> str:
     except Exception as e:  
         print(f"Error validating {email}: {e}")  
         return None  # Or some error indicator   
-
-from typing import Dict
-import requests
 
 PROFILE_FIELD_MAPPING = {
     "photoUrl": "imgUrl",
@@ -76,8 +89,6 @@ COMPANY_FIELD_MAPPING = {
 
 }
 
-serper_api_key = "sk_b1edcda9a6bb0ac0d26c9c3936ad36183cf775f2"
-
 def extract_nested_value(data: Dict, path: str) -> any:
     keys = path.split(".")
     for key in keys:
@@ -108,7 +119,7 @@ def map_fields(data: Dict, field_mapping: Dict) -> Dict:
 def search_linkedin_profile(linkedInUrl: str = "https://www.linkedin.com/in/williamhgates") -> dict:
     try:
         url = "https://api.scrapin.io/enrichment/profile"
-        querystring = {"apikey":serper_api_key,"linkedInUrl":linkedInUrl}
+        querystring = {"apikey":scrapin_api_key,"linkedInUrl":linkedInUrl}
         response = requests.request("GET", url, params=querystring)
         return map_fields(response.json()["person"], PROFILE_FIELD_MAPPING)
     except Exception as e:
@@ -118,7 +129,7 @@ def search_linkedin_profile(linkedInUrl: str = "https://www.linkedin.com/in/will
 def search_linkedin_activity(linkedInUrl: str = "https://www.linkedin.com/in/williamhgates") -> dict:
     try:
         url = "https://api.scrapin.io/enrichment/activities"
-        querystring = {"apikey":serper_api_key,"linkedInUrl":linkedInUrl}
+        querystring = {"apikey":scrapin_api_key,"linkedInUrl":linkedInUrl}
         response = requests.request("GET", url, params=querystring)
         return map_fields(response.json(),ACTIVITIES_FIELD_MAPPING)
     except Exception as e:
@@ -128,26 +139,12 @@ def search_linkedin_activity(linkedInUrl: str = "https://www.linkedin.com/in/wil
 def search_linkedin_company(linkedInUrl: str = "https://www.linkedin.com/company/1035") -> dict:
     try:
         url = "https://api.scrapin.io/enrichment/company"
-        querystring = {"apikey":serper_api_key,"linkedInUrl":linkedInUrl}
+        querystring = {"apikey":scrapin_api_key,"linkedInUrl":linkedInUrl}
         response = requests.request("GET", url, params=querystring)
         return response.json()["company"]
     except Exception as e:
         print(f"Err scraping {linkedInUrl} : {e}")
         return None
-
-DAG_ID = "Validate_CSV_Files"  
-S3_BUCKET_NAME = "airbyte-state-dev-us-east-2-genie-platforms"  
-S3_DIRECTORY = "air-byte-sync-destination/zoominfo-preview/"  
-OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"  
-
-# aws_access_key = Variable.get("AWS_ACCESS_KEY", default_var="your_default_access_key")  
-# aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
-# aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
-
-aws_access_key="ASIA4RCAOLGLCEZRJYW5"
-aws_secret_key="wtxa0OZi1KAB8tkSO78jDnyOSbTerrRXnIIdOsoQ"
-aws_session_token="IQoJb3JpZ2luX2VjENH//////////wEaCXVzLWVhc3QtMiJHMEUCIDUa7HY7Bg8Z8OsR6CkPhyGIXCC6lZFxY3Os8+3SrCxOAiEAhNrElq3AVLnJMuK7dxve/nCeRAVWBVUjkdf4vv2CcP8qmgMIehAAGgw4NjEyNzYxMDEwMTQiDL51jeFsq0iSQPjQnir3An+5BK5ql5JFZndPhK+mpDujjC73+LMH900EWcFNg7CFlY4y70XTjOWVu9+CyhnV3cIsereXQlh8TPR2loqBr+p+kDJUD9jrmyWTasyr00/lGfr3xh6pDjS/vELT2gWhSZ/fCxDXdrKA9mbc61x5BMKEXNxuFtmlcVLKn+Ur4kcnltHgZsmsIyBKju7N6tnBBK8/3HZbLrUHTOdGT7ZHmBQroJ158EoRvm7q4VRXW8XL/+Fg1NovSildMlmO6nZ0BtXMnDCrSfbSx3Knm6svEV3L+t+zBiTtCc8UVY6ENUPM4aMlaUWWCsy9DJ7cK2VkQVZkggfakcq3WqQkwVU6EU8J6UfCtjnFq+AF01QgnnhdRdzpR24i+2JfhOiVakL68bzSAoWKmcZWeM2a2D4JY+BipJKGihOWCr2JTa4OGJdFIvvfAgxhvkkH+n4M4bkPULzm/qtH2/1RE6sIxsDPIqaGs2hBhMkMaNRGbeib/dk6+fubM/Py2zDO3Ke6BjqmAUC4EfvUGl8H7IuYqUxfTdM29Mi3GMPiG4vgQk60aqxiTMtFdO9Qp3Hqu06VlUHV3d7P0/fDrt0oLY36BvvyOq/F/+7Kh2h+i2nhXETF7cj7jNy0+ZA0uVuzOhVimmH1QcIkRqmY4R3Hd9b0BWy7N8FHD82wFv4F5EJKhnQFQ+q+SksjRRB44g2U8b0AjNb8MItCEuFAVFP4BnQqz6wngSPkjcRBDx8="
-
 
 @dag(  
     dag_id=DAG_ID,  
@@ -166,6 +163,10 @@ def process_csv_files():
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
         file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]  
         return file_keys  
+
+    @task  
+    def start_message():  
+        print("Initiating the CSV processing workflow.")  
 
     @task  
     def process_files(file_keys: list):  
@@ -223,10 +224,6 @@ def process_csv_files():
             
             output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
             s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
-
-    @task  
-    def start_message():  
-        print("Initiating the CSV processing workflow.")  
 
     @task  
     def end_message():  
