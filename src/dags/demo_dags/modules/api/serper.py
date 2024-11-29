@@ -1,16 +1,17 @@
-import http.client
-import json
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-apikey = os.getenv('SERPER_API_KEY')
-
 import http.client  
 import json  
+from typing import Dict
+# from dotenv import load_dotenv
 
-def serper_website(url):  
+# load_dotenv()
+
+# apikey = os.getenv('SERPER_API_KEY')
+apikey = "74c14512d7971750512bc8c18cf07c7216be539f"
+
+
+
+def serper_website(url: str) -> Dict:  
     conn = http.client.HTTPSConnection("scrape.serper.dev")  
     payload = json.dumps({  
         "url": url  
@@ -28,7 +29,7 @@ def serper_website(url):
     if status_code == 200:  
         try:  
             json_data = json.loads(data.decode("utf-8"))  
-            return json_data
+            return json_data["metadata"]
         except json.JSONDecodeError:  
             print("Error: Unable to decode JSON response")  
     else:  
@@ -37,11 +38,11 @@ def serper_website(url):
     
     return False
         
-def serper_query(query):
+def serper_query(query: str) -> Dict:
     
     conn = http.client.HTTPSConnection("google.serper.dev")
     payload = json.dumps({
-        "q": "apple inc"
+        "q": query
     })
     headers = {
         'X-API-KEY': apikey,

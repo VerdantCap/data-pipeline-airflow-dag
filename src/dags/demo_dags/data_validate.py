@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta  
 from airflow.decorators import dag, task  
 import boto3  
-# import pandas as pd  
+import pandas as pd  
 import os  
 from airflow.models import Variable
-import requests
+from modules.api.scrapin import search_linkedin_profile, search_linkedin_company, search_linkedin_activity
+from modules.api.zerobounce import validate_email
+from modules.api.serper import serper_website
 
 DAG_ID = "Validate_CSV_Files"  
 S3_BUCKET_NAME = "airbyte-state-dev-us-east-2-genie-platforms"  
@@ -15,10 +17,10 @@ OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"
 # aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
 # aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
 
-aws_access_key = "ASIA4RCAOLGLLU4GNDDB"
-aws_secret_key = "Klxg9CA7Hn+imZwleNvJqN+BNNYRMG3AF7WoWa3S"
-aws_session_token = "IQoJb3JpZ2luX2VjEIf//////////wEaCXVzLWVhc3QtMiJGMEQCIH00hXzkwg1q3pMjU/hisxElMvzEthyd7KLbeurB18J0AiBls6MIQ03yam0azWnVzLgr4WJWpdQ8S2vD+qgcc1VuLCqaAwgwEAAaDDg2MTI3NjEwMTAxNCIM1aW67qRWBI6CwknOKvcCIsBeL8QKuWySa8Z3zY40IYe123Ytyn1gS6VgauwnH+eyPTURUiwdlcFhMXQ9PE6UyUFPhO7seM2QLqiJYr2Dxo+NJjjYjguiDgbF+LQ2HqRlro6w1OYkmhYC4T7DGDfw6FmSS7pcVkg791zZsEu06RcZ3H4tpMOhUqJ0VRYtJnrNshw9teHNHO8YeqZDFVFe2P4emCzgDalWI5cjLW8SBtIFSvKsa0wot79Veleur9LcaPIyPf2X4NvGYsGVlfyQCc+8gBFkhTUsHf49pTbAY3CcOnxVn0Ou61RPq6sO4Kuugps501DjK2LvWbzYQ4YC/dn24320eB7xYYtSvExosmifvIwuK7oPck8TFv4Rq5WSmKg30gVkBEzXYNdnBO4uLUhk8HZkwKupvxCun22p1IkpxcepcuUkftGbpKS3LAjni0YcI4vv4bF8gjYg5YEiQ4Dwc3qKwhb1EbZ5bhwD8L2mQ3xGScf7wW8fKHCEAGpFbLSGZJnKMLe7l7oGOqcBNlOcEXk7UEhgAqwJmAqgGEI3cLLrPl+3MvI1abJeuD8GfxXxCbsHv0iec88zx133XG7qhBhAGwxSunT7XYjAjmuMfalxL1T67goeAhSldojX1+Zd6XDrRalY2PYfzwnhNNl3Mg4fSpITqdogzAdW++pz/Sq0Ao75TEZ21bMN4Q5wetHzS9KsuW2XDH4l15oLSYIEaNiJH1axnZ1J9Gkqv7CbSHCG3MM="
-zero_bounce_api_key = "d049596d57d549d0ade2bcbf6d158204"
+aws_access_key="ASIA4RCAOLGLCEZRJYW5"
+aws_secret_key="wtxa0OZi1KAB8tkSO78jDnyOSbTerrRXnIIdOsoQ"
+aws_session_token="IQoJb3JpZ2luX2VjENH//////////wEaCXVzLWVhc3QtMiJHMEUCIDUa7HY7Bg8Z8OsR6CkPhyGIXCC6lZFxY3Os8+3SrCxOAiEAhNrElq3AVLnJMuK7dxve/nCeRAVWBVUjkdf4vv2CcP8qmgMIehAAGgw4NjEyNzYxMDEwMTQiDL51jeFsq0iSQPjQnir3An+5BK5ql5JFZndPhK+mpDujjC73+LMH900EWcFNg7CFlY4y70XTjOWVu9+CyhnV3cIsereXQlh8TPR2loqBr+p+kDJUD9jrmyWTasyr00/lGfr3xh6pDjS/vELT2gWhSZ/fCxDXdrKA9mbc61x5BMKEXNxuFtmlcVLKn+Ur4kcnltHgZsmsIyBKju7N6tnBBK8/3HZbLrUHTOdGT7ZHmBQroJ158EoRvm7q4VRXW8XL/+Fg1NovSildMlmO6nZ0BtXMnDCrSfbSx3Knm6svEV3L+t+zBiTtCc8UVY6ENUPM4aMlaUWWCsy9DJ7cK2VkQVZkggfakcq3WqQkwVU6EU8J6UfCtjnFq+AF01QgnnhdRdzpR24i+2JfhOiVakL68bzSAoWKmcZWeM2a2D4JY+BipJKGihOWCr2JTa4OGJdFIvvfAgxhvkkH+n4M4bkPULzm/qtH2/1RE6sIxsDPIqaGs2hBhMkMaNRGbeib/dk6+fubM/Py2zDO3Ke6BjqmAUC4EfvUGl8H7IuYqUxfTdM29Mi3GMPiG4vgQk60aqxiTMtFdO9Qp3Hqu06VlUHV3d7P0/fDrt0oLY36BvvyOq/F/+7Kh2h+i2nhXETF7cj7jNy0+ZA0uVuzOhVimmH1QcIkRqmY4R3Hd9b0BWy7N8FHD82wFv4F5EJKhnQFQ+q+SksjRRB44g2U8b0AjNb8MItCEuFAVFP4BnQqz6wngSPkjcRBDx8="
+
 
 @dag(  
     dag_id=DAG_ID,  
@@ -45,43 +47,55 @@ def process_csv_files():
         
         for file_key in file_keys:  
             response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
-            # data = pd.read_csv(response['Body'])  
-            # data_cleaned = data.dropna()
-            try:
-                data = {
-                    "return_url":"",
-                    "first_name_column" : 2,
-                    "second_name_column" : 3,
-                    "has_header_row" : False,
-                    "remove_duplicate" : True,
-                    "api_key": zero_bounce_api_key,
-                    "email_address_column": 14
-                }
-                response = requests.post(
-                    "https://bulkapi.zerobounce.net/v2/sendfile",
-                    data = data,
-                    files = {"file": (os.path.basename(file_key),response['Body'].read(),"text/csv")}
-                )
+            data = pd.read_csv(response['Body'])  
+            df = data.dropna(subset=["Email Address"])
+            df['validation_status'] = df['Email Address'].apply(validate_email)
+            df = data.dropna(subset=["LinkedIn Contact Profile URL"])
+            df_profile = df['LinkedIn Contact Profile URL'].apply(search_linkedin_profile)
+            df_activity = df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity)
+            df_serper = df['Website'].apply(serper_website)
+            # df['company_data'] = df['LinkedIn Company Profile URL'].apply(search_linkedin_company)
+            df = pd.concat([df, df_profile, df_activity, df_serper], join='inner', axis=1)
+            csv_buffer = df.to_csv(index=False)
+            # try:
+            #     data = {
+            #         "return_url":"",
+            #         "first_name_column" : 2,
+            #         "second_name_column" : 3,
+            #         "has_header_row" : False,
+            #         "remove_duplicate" : True,
+            #         "api_key": zero_bounce_api_key,
+            #         "email_address_column": 14
+            #     }
+            #     response = requests.post(
+            #         "https://bulkapi.zerobounce.net/v2/sendfile",
+            #         data = data,
+            #         files = {"file": (os.path.basename(file_key),response['Body'].read(),"text/csv")}
+            #     )
 
-                if response["success"] == True:
-                    try:
-                        output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
-                        response.get(
-                            "https://bulkapi.zerobounce.net/v2/getfile",
-                            params={
-                                "api_key": zero_bounce_api_key,
-                                "file_id": response["file_id"],
-                            },
-                        )
-                        s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=response["content"])
-                    except Exception as e:
-                         print("ZeroBounce get_file error: " + str(e))
-                else:
-                    print(file_key,"sending failed.")
-            except Exception as e:
-                print("ZeroBounce send_file error: " + str(e))
-            # csv_buffer = data_cleaned.to_csv(index=False)  
-             
+            #     if response.json()["success"] == True:
+            #         try:
+            #             output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
+            #             result = response.get(
+            #                 "https://bulkapi.zerobounce.net/v2/getfile",
+            #                 params={
+            #                     "api_key": zero_bounce_api_key,
+            #                     "file_id": response.json()["file_id"],
+            #                 },
+            #             )
+            #             if result.headers["Content-Type"] == "application/json":
+            #                 print(result.json())
+            #             else:
+            #                 s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=result.content)
+            #         except Exception as e:
+            #              print("ZeroBounce get_file error: " + str(e))
+            #     else:
+            #         print(file_key,"sending failed.")
+            # except Exception as e:
+            #     print("ZeroBounce send_file error: " + str(e))
+            
+            output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
+            s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
 
     @task  
     def start_message():  
