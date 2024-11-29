@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta  
 from airflow.decorators import dag, task  
 import boto3  
-import pandas as pd  
+# import pandas as pd  
 import os  
-from airflow.models import Variable  
+from airflow.models import Variable
+import requests
 
 DAG_ID = "Validate_CSV_Files"  
 S3_BUCKET_NAME = "airbyte-state-dev-us-east-2-genie-platforms"  
@@ -14,13 +15,14 @@ OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"
 # aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
 # aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
 
-aws_access_key="ASIA4RCAOLGLLU4GNDDB"
-aws_secret_key ="Klxg9CA7Hn+imZwleNvJqN+BNNYRMG3AF7WoWa3S"
-aws_session_token="IQoJb3JpZ2luX2VjEIf//////////wEaCXVzLWVhc3QtMiJGMEQCIH00hXzkwg1q3pMjU/hisxElMvzEthyd7KLbeurB18J0AiBls6MIQ03yam0azWnVzLgr4WJWpdQ8S2vD+qgcc1VuLCqaAwgwEAAaDDg2MTI3NjEwMTAxNCIM1aW67qRWBI6CwknOKvcCIsBeL8QKuWySa8Z3zY40IYe123Ytyn1gS6VgauwnH+eyPTURUiwdlcFhMXQ9PE6UyUFPhO7seM2QLqiJYr2Dxo+NJjjYjguiDgbF+LQ2HqRlro6w1OYkmhYC4T7DGDfw6FmSS7pcVkg791zZsEu06RcZ3H4tpMOhUqJ0VRYtJnrNshw9teHNHO8YeqZDFVFe2P4emCzgDalWI5cjLW8SBtIFSvKsa0wot79Veleur9LcaPIyPf2X4NvGYsGVlfyQCc+8gBFkhTUsHf49pTbAY3CcOnxVn0Ou61RPq6sO4Kuugps501DjK2LvWbzYQ4YC/dn24320eB7xYYtSvExosmifvIwuK7oPck8TFv4Rq5WSmKg30gVkBEzXYNdnBO4uLUhk8HZkwKupvxCun22p1IkpxcepcuUkftGbpKS3LAjni0YcI4vv4bF8gjYg5YEiQ4Dwc3qKwhb1EbZ5bhwD8L2mQ3xGScf7wW8fKHCEAGpFbLSGZJnKMLe7l7oGOqcBNlOcEXk7UEhgAqwJmAqgGEI3cLLrPl+3MvI1abJeuD8GfxXxCbsHv0iec88zx133XG7qhBhAGwxSunT7XYjAjmuMfalxL1T67goeAhSldojX1+Zd6XDrRalY2PYfzwnhNNl3Mg4fSpITqdogzAdW++pz/Sq0Ao75TEZ21bMN4Q5wetHzS9KsuW2XDH4l15oLSYIEaNiJH1axnZ1J9Gkqv7CbSHCG3MM="
- 
+aws_access_key = "ASIA4RCAOLGLLU4GNDDB"
+aws_secret_key = "Klxg9CA7Hn+imZwleNvJqN+BNNYRMG3AF7WoWa3S"
+aws_session_token = "IQoJb3JpZ2luX2VjEIf//////////wEaCXVzLWVhc3QtMiJGMEQCIH00hXzkwg1q3pMjU/hisxElMvzEthyd7KLbeurB18J0AiBls6MIQ03yam0azWnVzLgr4WJWpdQ8S2vD+qgcc1VuLCqaAwgwEAAaDDg2MTI3NjEwMTAxNCIM1aW67qRWBI6CwknOKvcCIsBeL8QKuWySa8Z3zY40IYe123Ytyn1gS6VgauwnH+eyPTURUiwdlcFhMXQ9PE6UyUFPhO7seM2QLqiJYr2Dxo+NJjjYjguiDgbF+LQ2HqRlro6w1OYkmhYC4T7DGDfw6FmSS7pcVkg791zZsEu06RcZ3H4tpMOhUqJ0VRYtJnrNshw9teHNHO8YeqZDFVFe2P4emCzgDalWI5cjLW8SBtIFSvKsa0wot79Veleur9LcaPIyPf2X4NvGYsGVlfyQCc+8gBFkhTUsHf49pTbAY3CcOnxVn0Ou61RPq6sO4Kuugps501DjK2LvWbzYQ4YC/dn24320eB7xYYtSvExosmifvIwuK7oPck8TFv4Rq5WSmKg30gVkBEzXYNdnBO4uLUhk8HZkwKupvxCun22p1IkpxcepcuUkftGbpKS3LAjni0YcI4vv4bF8gjYg5YEiQ4Dwc3qKwhb1EbZ5bhwD8L2mQ3xGScf7wW8fKHCEAGpFbLSGZJnKMLe7l7oGOqcBNlOcEXk7UEhgAqwJmAqgGEI3cLLrPl+3MvI1abJeuD8GfxXxCbsHv0iec88zx133XG7qhBhAGwxSunT7XYjAjmuMfalxL1T67goeAhSldojX1+Zd6XDrRalY2PYfzwnhNNl3Mg4fSpITqdogzAdW++pz/Sq0Ao75TEZ21bMN4Q5wetHzS9KsuW2XDH4l15oLSYIEaNiJH1axnZ1J9Gkqv7CbSHCG3MM="
+zero_bounce_api_key = "d049596d57d549d0ade2bcbf6d158204"
+
 @dag(  
     dag_id=DAG_ID,  
-    schedule_interval="* * * * *",  # Run every minute  
+    schedule_interval="* * * * *",  
     start_date=datetime(2024, 11, 25),  
     dagrun_timeout=timedelta(minutes=5),  
     catchup=False,  
@@ -43,15 +45,43 @@ def process_csv_files():
         
         for file_key in file_keys:  
             response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
-            data = pd.read_csv(response['Body'])  
+            # data = pd.read_csv(response['Body'])  
+            # data_cleaned = data.dropna()
+            try:
+                data = {
+                    "return_url":"",
+                    "first_name_column" : 2,
+                    "second_name_column" : 3,
+                    "has_header_row" : False,
+                    "remove_duplicate" : True,
+                    "api_key": zero_bounce_api_key,
+                    "email_address_column": 14
+                }
+                response = requests.post(
+                    "https://bulkapi.zerobounce.net/v2/sendfile",
+                    data = data,
+                    files = {"file": (os.path.basename(file_key),response['Body'].read(),"text/csv")}
+                )
 
-            # Example: Data cleansing  
-            data_cleaned = data.dropna()  
-
-            # Save cleaned data back to S3  
-            output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"  
-            csv_buffer = data_cleaned.to_csv(index=False)  
-            s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer.encode('utf-8'))  
+                if response["success"] == True:
+                    try:
+                        output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
+                        response.get(
+                            "https://bulkapi.zerobounce.net/v2/getfile",
+                            params={
+                                "api_key": zero_bounce_api_key,
+                                "file_id": response["file_id"],
+                            },
+                        )
+                        s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=response["content"])
+                    except Exception as e:
+                         print("ZeroBounce get_file error: " + str(e))
+                else:
+                    print(file_key,"sending failed.")
+            except Exception as e:
+                print("ZeroBounce send_file error: " + str(e))
+            # csv_buffer = data_cleaned.to_csv(index=False)  
+             
 
     @task  
     def start_message():  
