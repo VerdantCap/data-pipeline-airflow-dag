@@ -7,22 +7,25 @@ from airflow.models import Variable
 # from modules.api.scrapin import search_linkedin_profile, search_linkedin_company, search_linkedin_activity
 # from modules.api.zerobounce import validate_email
 # from modules.api.serper import serper_website
-
-from zerobouncesdk import ZeroBounce, ZBException
-
+import requests
 zero_bounce_api_key = "d049596d57d549d0ade2bcbf6d158204"
 
 
 def validate_email(email: str) -> str:  
     try:  
-        zero_bounce = ZeroBounce("d049596d57d549d0ade2bcbf6d158204")  
-        response = zero_bounce.validate(email)
+        response = requests.get(
+            "https://api.zerobounce.net/v2/validate", 
+            params=
+            {
+            "email": email,
+            "api_key": zero_bounce_api_key
+            }
+        )
         print(response.status.value)  
         return response.status.value  # You can adjust to get other data from the response.  
-    except ZBException as e:  
+    except Exception as e:  
         print(f"Error validating {email}: {e}")  
-        return None  # Or some error indicator 
-    
+        return None  # Or some error indicator   
 
 from typing import Dict
 import requests
