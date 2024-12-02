@@ -483,7 +483,7 @@ def process_csv_files():
             df_serper = df['Website'].apply(serper_website)
             df = pd.concat([df, df_profile, df_activity], join='inner', axis=1)
             csv_buffer = df.to_csv(index=False)            
-            output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key+"_test")}"
+            output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
             s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
 
     @task  
