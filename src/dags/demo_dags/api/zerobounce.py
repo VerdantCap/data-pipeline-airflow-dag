@@ -40,8 +40,8 @@ def validate_email(email: str) -> str:
         #     }
         # )
         # print(response.status.value)  
-        # return response.status.value
-        return "valid"
+        # return {"validation_status": response.status.value}
+        return {"validation_status": "valid"}
     except Exception as e:  
         print(f"Error validating {email}: {e}")  
         return None  # Or some error indicator 
