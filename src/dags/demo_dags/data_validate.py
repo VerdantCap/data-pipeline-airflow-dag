@@ -509,14 +509,14 @@ def process_csv_files():
 
     file_keys = fetch_filekeys_from_s3()  
     for file_key in file_keys:
-        start = start_message()  
-        df = fetch_file_from_s3(file_key)  
-        profiles = process_profiles(df)  
-        activities = process_activities(df)  
-        websites = process_websites(df)  
-        companies = process_companies(df)  
-        synthesis = synthesize_results(file_key, df, profiles, activities, websites, companies)
-        end = end_message()
+        start = start_message.override(task_id = f"start_task_{file_key}")()  
+        df = fetch_file_from_s3.override(task_id = f"fetch_file_{file_key}")(file_key = file_key)  
+        profiles = process_profiles.override(task_id = f"linkedin_profile_{file_key}")(df = df)  
+        activities = process_activities.override(task_id = f"linkedin_activity_{file_key}")(df)  
+        companies = process_companies.override(task_id = f"linkedin_company_{file_key}")(df)  
+        websites = process_websites.override(task_id = f"company_website_{file_key}")(df)
+        synthesis = synthesize_results.override(task_id = f"collecting_{file_key}")(file_key, df, profiles, activities, websites, companies)
+        end = end_message.override(task_id=f"end_task_{file_key}")()
         start >> df >> [profiles, activities, websites, companies] >> synthesis >> end 
 
 dag_instance = process_csv_files()
