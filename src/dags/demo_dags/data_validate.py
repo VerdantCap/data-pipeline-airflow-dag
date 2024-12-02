@@ -4,9 +4,9 @@ import boto3
 import pandas as pd  
 import os
 from airflow.models import Variable
-from script.scrapin import search_linkedin_profile, search_linkedin_company, search_linkedin_activity
-from script.zerobounce import validate_email
-from script.serper import serper_website
+from api.scrapin import search_linkedin_profile, search_linkedin_company, search_linkedin_activity
+from api.zerobounce import validate_email
+from api.serper import serper_website
 
 DAG_ID = "Validate_CSV_Files"  
 S3_BUCKET_NAME = "airbyte-state-dev-us-east-2-genie-platforms"  
