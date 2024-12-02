@@ -344,7 +344,7 @@ def search_linkedin_company(linkedInUrl: str = "https://www.linkedin.com/company
         # url = "https://api.scrapin.io/enrichment/company"
         # querystring = {"apikey":scrapin_api_key,"linkedInUrl":linkedInUrl}
         # response = requests.request("GET", url, params=querystring)
-        # return map_fields(response.json()["company"], WEBSITE_FILED_MAPPING)
+        # return map_fields(response.json()["company"], COMPANY_FIELD_MAPPING)
         data = {
             "linkedInId": "1035",
             "name": "Microsoft",
@@ -397,7 +397,7 @@ def search_linkedin_company(linkedInUrl: str = "https://www.linkedin.com/company
             "logo": "https://media.licdn.com/dms/image/C560BAQE88xCsONDULQ/company-logo_400_400/0/1630652622688/microsoft_logo?e=1725494400&v=beta&t=joSXHhDAEare7f9gk8MwXr2sOr84zX7HDx2h5znXEYI"
         }
 
-        return map_fields(data, WEBSITE_FILED_MAPPING)
+        return map_fields(data, COMPANY_FIELD_MAPPING)
     except Exception as e:
         print(f"Err scraping {linkedInUrl} : {e}")
         return None
@@ -479,9 +479,9 @@ def process_csv_files():
             df = data.dropna(subset=["LinkedIn Contact Profile URL"])
             df_profile = pd.DataFrame(df['LinkedIn Contact Profile URL'].apply(search_linkedin_profile))
             df_activity = pd.DataFrame(df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity))
-            df['company_data'] = df['LinkedIn Company Profile URL'].apply(search_linkedin_company)
-            df_serper = df['Website'].apply(serper_website)
-            df = pd.concat([df, df_profile, df_activity], join='inner', axis=1)
+            df_company= pd.DataFrame(df['LinkedIn Company Profile URL'].apply(search_linkedin_company))
+            df_serper = pd.DataFrame(df['Website'].apply(serper_website))
+            df = pd.concat([df, df_profile, df_activity,df_company,df_serper], join='inner', axis=1)
             csv_buffer = df.to_csv(index=False)            
             output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
             s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
