@@ -4,6 +4,8 @@ import boto3
 import pandas as pd  
 import os
 from airflow.models import Variable
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), ''))) 
 from api.scrapin import search_linkedin_profile, search_linkedin_company, search_linkedin_activity
 from api.zerobounce import validate_email
 from api.serper import serper_website
