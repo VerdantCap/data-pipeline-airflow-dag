@@ -473,15 +473,15 @@ def process_csv_files():
         
         for file_key in file_keys:  
             response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
-            data = pd.read_csv(response['Body'])  
-            df = data.dropna(subset=["Email Address"])
-            df['validation_status'] = df['Email Address'].apply(validate_email)
-            df = data.dropna(subset=["LinkedIn Contact Profile URL"])
+            df = pd.read_csv(response['Body'])  
+            # df = data.dropna(subset=["Email Address"])
+            validate_email= df['Email Address'].apply(validate_email)
+            # df = data.dropna(subset=["LinkedIn Contact Profile URL"])
             df_profile = pd.DataFrame(list(df['LinkedIn Contact Profile URL'].apply(search_linkedin_profile)))
             df_activity = pd.DataFrame(list(df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity)))
             df_company= pd.DataFrame(list(df['LinkedIn Company Profile URL'].apply(search_linkedin_company)))
             df_serper = pd.DataFrame(list(df['Website'].apply(serper_website)))
-            df_result = pd.concat([df, df_profile, df_activity,df_company,df_serper], join='inner', axis=1)
+            df_result = pd.concat([df, validate_email, df_profile, df_activity,df_company,df_serper], join='inner', axis=1)
             csv_buffer = df_result.to_csv(index=False)            
             output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
             s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
