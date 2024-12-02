@@ -111,15 +111,15 @@ def process_csv_files():
     response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
     file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
 
-    for file_key in file_keys:
-        start = start_message.override(task_id=f"start_task_{file_key}")()  
-        df = fetch_file_from_s3.override(task_id=f"fecth_file_{file_key}")(file_key)
-        emails = process_profiles.override(task_id=f"valied_email_{file_key}")(df)
-        profiles = process_profiles.override(task_id=f"process_profile_{file_key}")(df)  
-        activities = process_activities.override(task_id=f"process_activities_{file_key}")(df)  
-        companies = process_companies.override(task_id=f"process_companies_{file_key}")(df)
-        websites = process_websites.override(task_id=f"process_websites_{file_key}")(df)  
-        synthesis = synthesize_results(file_key, df, emails, profiles, activities, companies, websites)
+    for i, file_key in enumerate(file_keys):
+        start = start_message.override(task_id=f"start_task_{i}")()  
+        df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
+        emails = process_profiles.override(task_id=f"valied_email_{i}")(df)
+        profiles = process_profiles.override(task_id=f"process_profile_{i}")(df)  
+        activities = process_activities.override(task_id=f"process_activities_{i}")(df)  
+        companies = process_companies.override(task_id=f"process_companies_{i}")(df)
+        websites = process_websites.override(task_id=f"process_websites_{i}")(df)  
+        synthesis = synthesize_results.overrride(task_id=f"synthesis_task_{i}")(file_key, df, emails, profiles, activities, companies, websites)
         end = end_message.override(task_id=f"end_task_{file_key}")()
         start >> df >> [emails, profiles, activities, companies, websites] >> synthesis >> end 
 
