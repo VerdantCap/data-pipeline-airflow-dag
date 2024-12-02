@@ -119,7 +119,7 @@ def process_csv_files():
         activities = process_activities.override(task_id=f"process_activities_{i}")(df)  
         companies = process_companies.override(task_id=f"process_companies_{i}")(df)
         websites = process_websites.override(task_id=f"process_websites_{i}")(df)  
-        synthesis = synthesize_results.overrride(task_id=f"synthesis_task_{i}")(file_key, df, emails, profiles, activities, companies, websites)
+        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df, emails, profiles, activities, companies, websites)
         end = end_message.override(task_id=f"end_task_{file_key}")()
         start >> df >> [emails, profiles, activities, companies, websites] >> synthesis >> end 
 
