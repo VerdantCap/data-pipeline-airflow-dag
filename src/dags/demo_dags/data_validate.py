@@ -481,8 +481,8 @@ def process_csv_files():
             df_activity = pd.DataFrame(list(df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity)))
             df_company= pd.DataFrame(list(df['LinkedIn Company Profile URL'].apply(search_linkedin_company)))
             df_serper = pd.DataFrame(list(df['Website'].apply(serper_website)))
-            df = pd.concat([df, df_profile, df_activity,df_company,df_serper], join='inner', axis=1)
-            csv_buffer = df.to_csv(index=False)            
+            df_result = pd.concat([df, df_profile, df_activity,df_company,df_serper], join='inner', axis=1)
+            csv_buffer = df_result.to_csv(index=False)            
             output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"
             s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
 
