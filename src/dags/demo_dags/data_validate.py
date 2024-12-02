@@ -446,7 +446,7 @@ def serper_website(url: str) -> Dict:
 
 @dag(  
     dag_id=DAG_ID,  
-    schedule_interval="* * * * *",  
+    schedule_interval="*/10 * * * *",  
     start_date=datetime(2024, 11, 25),  
     dagrun_timeout=timedelta(minutes=5),  
     catchup=False,  
@@ -455,11 +455,7 @@ def serper_website(url: str) -> Dict:
 def process_csv_files():  
 
     @task  
-    def start_message():  
-        print("Initiating the CSV processing workflow.")  
-
-    @task  
-    def fetch_filekeys_from_s3() -> list:  
+    def fetch_files_from_s3() -> list:  
         """Retrieve CSV file keys from the designated S3 directory."""  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
@@ -467,56 +463,38 @@ def process_csv_files():
         return file_keys  
 
     @task  
-    def fetch_file_from_s3(file_key: str) -> pd.DataFrame:  
-        """Download a single CSV file from S3."""  
+    def start_message():  
+        print("Initiating the CSV processing workflow.")  
+
+    @task  
+    def process_files(file_keys: list):  
+        """Download, process, and upload each CSV file."""  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
-        response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
-        df = pd.read_csv(response['Body'])  
-        df = df.dropna(subset=["Email Address", "LinkedIn Contact Profile URL", "Website", "LinkedIn Company Profile URL"])  
-        return df  
-
-    @task  
-    def process_profiles(df: pd.DataFrame) -> pd.DataFrame:  
-        return pd.DataFrame(df['LinkedIn Contact Profile URL'].apply(search_linkedin_profile))
-
-    @task  
-    def process_activities(df: pd.DataFrame) -> pd.DataFrame:  
-        return pd.DataFrame(df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity))
-
-    @task  
-    def process_websites(df: pd.DataFrame) -> pd.DataFrame:  
-        return pd.DataFrame(df['Website'].apply(serper_website))
-
-    @task  
-    def process_companies(df: pd.DataFrame) -> pd.DataFrame:  
-        return pd.DataFrame(df['LinkedIn Company Profile URL'].apply(search_linkedin_company))
-
-    @task  
-    def synthesize_results(file_key: str, df: pd.DataFrame, profiles: pd.DataFrame, activities: pd.DataFrame, websites: pd.DataFrame, companies: pd.DataFrame) -> None:  
-        df = pd.concat([df, profiles, activities, websites, companies], join = 'inner', axis=1) 
-
-        csv_buffer = df.to_csv(index=False)  
-        output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"  
-        s3 = boto3.client('s3', aws_access_key_id = aws_access_key, aws_secret_access_key = aws_secret_key, aws_session_token = aws_session_token)  
-        s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)  
-        print(f"Processed file uploaded to {output_key}")  
+        
+        for file_key in file_keys:  
+            response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)  
+            data = pd.read_csv(response['Body'])  
+            df = data.dropna(subset=["Email Address"])
+            df['validation_status'] = df['Email Address'].apply(validate_email)
+            df = data.dropna(subset=["LinkedIn Contact Profile URL"])
+            df_profile = pd.DataFrame(df['LinkedIn Contact Profile URL'].apply(search_linkedin_profile))
+            df_activity = pd.DataFrame(df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity))
+            df['company_data'] = df['LinkedIn Company Profile URL'].apply(search_linkedin_company)
+            df_serper = df['Website'].apply(serper_website)
+            df = pd.concat([df, df_profile, df_activity], join='inner', axis=1)
+            csv_buffer = df.to_csv(index=False)            
+            output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key+"_test")}"
+            s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)
 
     @task  
     def end_message():  
         print("CSV processing workflow completed.")  
 
-    
+    start = start_message()
+    file_keys = fetch_files_from_s3()  
+    process = process_files(file_keys)  
+    end = end_message()  
 
-    file_keys = fetch_filekeys_from_s3()  
-    for file_key in file_keys:
-        start = start_message.override(task_id = f"start_task_{file_key}")()  
-        df = fetch_file_from_s3.override(task_id = f"fetch_file_{file_key}")(file_key = file_key)  
-        profiles = process_profiles.override(task_id = f"linkedin_profile_{file_key}")(df = df)  
-        activities = process_activities.override(task_id = f"linkedin_activity_{file_key}")(df)  
-        companies = process_companies.override(task_id = f"linkedin_company_{file_key}")(df)  
-        websites = process_websites.override(task_id = f"company_website_{file_key}")(df)
-        synthesis = synthesize_results.override(task_id = f"collecting_{file_key}")(file_key, df, profiles, activities, websites, companies)
-        end = end_message.override(task_id=f"end_task_{file_key}")()
-        start >> df >> [profiles, activities, websites, companies] >> synthesis >> end 
+    start >> file_keys >> process >> end  
 
-dag_instance = process_csv_files()
+dag_instance = process_csv_files()  
