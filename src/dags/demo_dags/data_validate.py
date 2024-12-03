@@ -56,7 +56,10 @@ def process_csv_files():
 
     @task
     def process_email(df: pd.DataFrame) -> pd.DataFrame:
-        return pd.DataFrame(list(df['Email Address'].apply(validate_email)))
+        emails = pd.DataFrame(list(df['Email Address'].apply(validate_email)))
+        df = pd.concat([df, emails], join = 'inner', axis=1) 
+        df = df.loc[:, ~df.columns.duplicated()]
+        return df[df["validation_status"] == "valid"]
 
     @task
     def process_profiles(df: pd.DataFrame) -> pd.DataFrame:
@@ -75,8 +78,8 @@ def process_csv_files():
         return pd.DataFrame(list(df['Website'].apply(serper_website)))
 
     @task  
-    def synthesize_results(file_key: str, df: pd.DataFrame, emails: pd.DataFrame, profiles: pd.DataFrame, activities: pd.DataFrame, websites: pd.DataFrame, companies: pd.DataFrame) -> None:  
-        df = pd.concat([df, emails, profiles, activities, websites, companies], join = 'inner', axis=1) 
+    def synthesize_results(file_key: str, df_emails: pd.DataFrame, profiles: pd.DataFrame, activities: pd.DataFrame, websites: pd.DataFrame, companies: pd.DataFrame) -> None:  
+        df = pd.concat([df_emails, profiles, activities, websites, companies], join = 'inner', axis=1) 
         df = df.loc[:, ~df.columns.duplicated()]
         csv_buffer = df.to_csv(index=False)  
         output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"  
@@ -96,13 +99,13 @@ def process_csv_files():
     for i, file_key in enumerate(file_keys):
         start = start_message.override(task_id=f"start_task_{i}")()  
         df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
-        emails = process_email.override(task_id=f"valied_email_{i}")(df)
-        profiles = process_profiles.override(task_id=f"process_profile_{i}")(df)  
-        activities = process_activities.override(task_id=f"process_activities_{i}")(df)  
-        companies = process_companies.override(task_id=f"process_companies_{i}")(df)
-        websites = process_websites.override(task_id=f"process_websites_{i}")(df)  
-        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df, emails, profiles, activities, companies, websites)
+        df_emails = process_email.override(task_id=f"valied_email_{i}")(df)
+        profiles = process_profiles.override(task_id=f"process_profile_{i}")(df_emails)  
+        activities = process_activities.override(task_id=f"process_activities_{i}")(df_emails)  
+        companies = process_companies.override(task_id=f"process_companies_{i}")(df_emails)
+        websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
+        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
         end = end_message.override(task_id=f"end_task_{i}")()
-        start >> df >> [emails, profiles, activities, companies, websites] >> synthesis >> end 
+        start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
 
 dag_instance = process_csv_files()  
