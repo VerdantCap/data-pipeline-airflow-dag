@@ -19,10 +19,9 @@ OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"
 # aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
 # aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
 
-aws_access_key="ASIA4RCAOLGLCRIWA4IE"
-aws_secret_key="kbXJyMeh80k+bmwFvlO7g21sA4Cme4ZwiSA4NHRo"
-aws_session_token="IQoJb3JpZ2luX2VjECgaCXVzLWVhc3QtMiJHMEUCIQDnLHvFolpnqIj7Al45P8nFnp19vQc1aA9Qg+fmxeJ8OAIgeTBH2KgzZpG7qa9HmKygEGFxCTL+G+4YjLbsGFDat5QqowMI0f//////////ARAAGgw4NjEyNzYxMDEwMTQiDIthLpnWqcRk+lXlwyr3Ak13zDe6HK+qhmTArQJy0EYw3uNafFz96a3vAuSVNQeorKnEZ97rotqCy4gt6avY1Ad65tPBnOTMnuTvbiyUc80bC/2AsBjWHJss9fdF3xtjre/0PMSY8gOSqYboNYQviwLMn8708lYs3tyY0uY+OZ/jiTdzl+2VeNEY6Y3eny5Tb/bEI3d30uxPDvU0BaQ6yhS/qFKMbIDphrYuEcJAfHS4ru1NoU5JFnlxF1EpgsAk+09d767lHJdGWM7BlUJ+t0ycplviIeZpvAPiCeDCKbqlMMPOx1ju1wgtdQymGX/QtYUFfCOsdxhrtglDr1+MziUGGhKv4dC/2x+hOPuFX4yu6kCEnUqev5urKgwqxb7TATi8Lm52jBKLEy4ZY89x/HSUOTXFn9vfGfLC8Z7hB4XU/FAL4ciAO5ELIspvlMkS5R7rkVI3Q92EyztPumiCzjczZzw8ZwrzWUiFAbWteZFgnE3PwYiZ08EzaKMwzPPgN6Slwxh8CzCG/bq6BjqmAf6DizGRZmIvDNCaDKUX5jARt5Sl2ZpLR73gGnE7fvWSQhLuKWisJHyXKsGjK6/1Ch+Q9daDbR2ZWMyAJ1MJLwjoCPmqYDochZA6AAWa9tMzX6+8PTxReBY9EIg9+AUQ/gBkddkeNQMBlhsP+r2hPnOwTrg4srf7ThMsc4zbgde0auwYje/B7JgECGFsNEOBv8Sve9cAVfuss2kFq+xXAJXKLSFl1yQ="
-
+aws_access_key="ASIA4RCAOLGLA4PGLBJH"
+aws_secret_key="ugIaSM3Sygwu5nljJWOEqxC/q47nqLiilBswWAl9"
+aws_session_token="IQoJb3JpZ2luX2VjEC0aCXVzLWVhc3QtMiJIMEYCIQC7KXVtcrfy71zMaY9SPsZbTtXPcPywzv60/kiTZFq2CAIhANO6sq3Bo7kdjYMckOOq98tWjIImhWb4SCSyB8mzlrzuKqMDCNb//////////wEQABoMODYxMjc2MTAxMDE0Igwd9aQ7bsuS/5Q1yk8q9wIv9V5J4qeRfBqthrdRYEEJi0jB58Acd2s/9Dj9RiXUO13eRnZjpBxjeZN1OTxQfeLSl+rtUviMjy8/ItfPhpcyR58jiGgnci5CVMpjtcF8S+togZgE8equxI9+54X7k1p4u74xdBo9ylMl9Aue5U8rYlQRONAQTgRGyAQBifg1kMxc6ANGjquMCxTpvtwJU5RPJm2U4UXOijMdjzavU0OIIyDf7l3ypYw+Becdq17U+oV4FFX0DE5rPYiqVviIkzNAQ8Nq5tBb6KDEzIyRJwwlIParzyg22jh4WiODiQk1drKvA+kDjl5flDbU/U8FA+YAuNiodI0nRWYbL+GzhPDFA/uxhg3+eYvyJzvrj4M2bZNJMTkcNJQlLVAUMO8JsthQeJeAC3APWdnwgQr+h7kXEjX4wPqTxDSBdDwU1av+qj+8pcw2lldei1k2KQkKmDHXSYiJ+kNiJ3SGzRB2KCOG1Qmlk6OEAJST/UpENxd4inMLPbFf19ow6oC8ugY6pQET9LoPgEOr/Bc8vkTfUlG5cjk5FqNgfk4pLK1mf4fHu6imhXsUDt8DzrL7KqpfulVadfdAckTuqBT8HI3gCH54DimzqXywDXPTbPI/5EzgC2Xmvlz0AySX7VuUFNcAg/IE8UpX17t5JvwyYLaMExs8QvK2THO+1t+LhbURsmU4A7qPlna8LmMG9HD3BEiXUESS0x5HBj2xDz5/idQXiIGcGHa/ylQ="
 
 @dag(  
     dag_id=DAG_ID,  
@@ -77,7 +76,7 @@ def process_csv_files():
     @task  
     def synthesize_results(file_key: str, df: pd.DataFrame, emails: pd.DataFrame, profiles: pd.DataFrame, activities: pd.DataFrame, websites: pd.DataFrame, companies: pd.DataFrame) -> None:  
         df = pd.concat([df, emails, profiles, activities, websites, companies], join = 'inner', axis=1) 
-
+        df = df.loc[:, ~df.columns.duplicated()]
         csv_buffer = df.to_csv(index=False)  
         output_key = f"{OUTPUT_DIRECTORY}{os.path.basename(file_key)}"  
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
