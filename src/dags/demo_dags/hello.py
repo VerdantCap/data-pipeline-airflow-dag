@@ -17,23 +17,27 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def list_s3_files(bucket_name: str):
-    """
-    List all files in the specified S3 bucket.
-    """
-    # Create a session using the default configuration
-    # Boto3 will automatically use the credentials provided by IRSA
-    session = boto3.Session()
-    s3_client = session.client('s3')
+def list_s3_files(bucket_name: str, prefix: str = ''):  
+    """  
+    List all files in the specified S3 bucket and subdirectory (prefix).  
+
+    :param bucket_name: Name of the S3 bucket.  
+    :param prefix: S3 object key prefix to filter files within a 'subdirectory'.  
+    """  
+    # Create a session using the default configuration  
+    # Boto3 will automatically use the credentials provided by IRSA  
+    session = boto3.Session()  
+    s3_client = session.client('s3')  
     
-    paginator = s3_client.get_paginator('list_objects_v2')
+    paginator = s3_client.get_paginator('list_objects_v2')  
     
-    try:
-        for page in paginator.paginate(Bucket=bucket_name):
-            for obj in page.get('Contents', []):
-                print(obj['Key'])
-    except NoCredentialsError:
-        print("Credentials not available.")
+    try:  
+        # Set the prefix to look within a specific 'folder'  
+        for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):  
+            for obj in page.get('Contents', []):  
+                print(obj['Key'])  
+    except NoCredentialsError:  
+        print("Credentials not available.") 
 
 # Instantiate the DAG
 dag = DAG(
@@ -46,9 +50,9 @@ dag = DAG(
 # Define the Python function to be executed
 def print_hello():
     bucket_name = "airflow-storage-dev-us-east-2-genie-platforms"
-    
-    # List files in the S3 bucket
-    list_s3_files(bucket_name)
+    prefix = 'airflow/logs/dag_id=hello_world'  # Change this to your subdirectory  
+    # List files in the S3 bucket subdirectory  
+    list_s3_files(bucket_name, prefix)
 
 
 # Create tasks
