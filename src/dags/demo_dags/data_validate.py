@@ -51,7 +51,7 @@ def process_csv_files():
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)
         response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)
         df = pd.read_csv(response['Body'])
-        df = df.dropna(subset=["Email Address", "LinkedIn Contact Profile URL", "Website", "LinkedIn Company Profile URL"])
+        df = df.dropna(subset=["Email Address"])
         return df
 
     @task

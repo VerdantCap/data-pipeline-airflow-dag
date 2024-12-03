@@ -31,11 +31,14 @@ def list_s3_files(bucket_name: str, prefix: str = ''):
     
     paginator = s3_client.get_paginator('list_objects_v2')  
     
+    content = ""
     try:  
         # Set the prefix to look within a specific 'folder'  
         for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):  
-            for obj in page.get('Contents', []):  
-                print(obj['Key'])  
+            for obj in page.get('Contents', []): 
+                content += "//" 
+                content += obj['Key'] 
+        s3_client.put_object(Bucket=bucket_name, Key="airflow/logs/1.txt", Body=content)  
     except NoCredentialsError:  
         print("Credentials not available.") 
 
@@ -69,13 +72,15 @@ dag = DAG(
 # Define the Python function to be executed
 def print_hello():
     bucket_name = "airflow-storage-dev-us-east-2-genie-platforms"
-    prefix = 'airflow/logs/1.txt'  # Change this to your subdirectory  
+    prefix = 'airflow/logs/'  # Change this to your subdirectory  
     # List files in the S3 bucket subdirectory  
 
-    content = "This is the string content to be stored in the file."  # The string content you want to write  
+
+    list_s3_files(bucket_name, prefix)
+    # content = "This is the string content to be stored in the file."  # The string content you want to write  
 
     # Write the string as a file to the S3 bucket  
-    write_string_to_s3(bucket_name, prefix, content)
+    # write_string_to_s3(bucket_name, prefix, content)
 
 
 # Create tasks
