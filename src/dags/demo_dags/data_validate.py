@@ -100,16 +100,16 @@ def process_csv_files():
 
     consumer = consumer_kafka()
     file_keys = fetch_file_keys()
-    for i, file_key in enumerate(file_keys):
+    for i in range(len(file_keys)):
         start = start_message.override(task_id=f"start_task_{i}")()
 
-        df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
+        df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_keys[i])
         df_emails = process_email.override(task_id=f"valied_email_{i}")(df)
         profiles = process_profiles.override(task_id=f"process_profile_{i}")(df_emails)  
         activities = process_activities.override(task_id=f"process_activities_{i}")(df_emails)  
         companies = process_companies.override(task_id=f"process_companies_{i}")(df_emails)
         websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
-        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
+        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_keys[i], df_emails, profiles, activities, companies, websites)
         end = end_message.override(task_id=f"end_task_{i}")()
         consumer >> file_keys >> start
         start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
