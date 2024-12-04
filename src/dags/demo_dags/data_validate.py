@@ -91,10 +91,15 @@ def process_csv_files():
     def end_message():  
         print("CSV processing workflow completed.")  
 
-    s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
-    response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
-    file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
+    @task
+    def fetch_file_keys():
+        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
+        response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
+        file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
+        return file_keys
 
+    consumer = consumer_kafka()
+    file_keys = fetch_file_keys()
     for i, file_key in enumerate(file_keys):
         start = start_message.override(task_id=f"start_task_{i}")()
 
@@ -106,6 +111,7 @@ def process_csv_files():
         websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
         synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
         end = end_message.override(task_id=f"end_task_{i}")()
+        consumer >> file_keys >> start
         start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
 
 dag_instance = process_csv_files()  
