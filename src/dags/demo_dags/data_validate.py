@@ -33,10 +33,6 @@ aws_session_token="IQoJb3JpZ2luX2VjEEcaCXVzLWVhc3QtMiJGMEQCIFTsj3N0kWv3OkfTj2Dwu
 )  
 def process_csv_files():  
 
-    @task
-    def consumer_kafka():
-        print("Getting the msgs from kafka")
-
     @task  
     def start_message(pool="default_pool"):  
         print("Initiating the CSV processing workflow.")  
@@ -86,19 +82,13 @@ def process_csv_files():
         s3.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=csv_buffer)  
         print(f"Processed file uploaded to {output_key}")
 
-
-    @task  
-    def end_message(pool="default_pool"):  
-        print("CSV processing workflow completed.")  
-
     @task
     def fetch_file_keys():
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
         response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
         return [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
 
-    consumer = consumer_kafka()
-    file_keys = fetch_file_keys()
+
 
     # for i in range(len_file_keys):
     #     start = start_message.override(task_id=f"start_task_{i}")()
@@ -111,7 +101,8 @@ def process_csv_files():
     #     websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
     #     synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_keys[i], df_emails, profiles, activities, companies, websites)
     #     end = end_message.override(task_id=f"end_task_{i}")()
-    start = start_message()
+
+    file_keys = fetch_file_keys()
     df = fetch_file_from_s3.expand(file_key = file_keys)
     df_emails = process_email.expand(df = df)
     profiles = process_profiles.expand(df = df_emails)
@@ -119,7 +110,7 @@ def process_csv_files():
     companies = process_companies.expand( df = df_emails)
     websites = process_websites.expand(df = df_emails)
     synthesis = synthesize_results.expand(file_key = file_keys, df_emails = df_emails, profiles = profiles, activities = activities, companies = companies, websites = websites)
-    end = end_message()
-    start  >> consumer >> file_keys >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
+    
+    file_keys >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis
 
 dag_instance = process_csv_files()  
