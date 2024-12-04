@@ -120,6 +120,6 @@ def process_csv_files():
     websites = process_websites.expand(df = df_emails)
     synthesis = synthesize_results.expand(file_key = file_keys, df_emails = df_emails, profiles = profiles, activities = activities, companies = companies, websites = websites)
     end = end_message()
-    consumer >> start>> file_keys >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
+    start  >> consumer >> file_keys >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
 
 dag_instance = process_csv_files()  
