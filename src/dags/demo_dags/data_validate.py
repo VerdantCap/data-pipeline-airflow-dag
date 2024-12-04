@@ -38,7 +38,7 @@ def process_csv_files():
         print("Getting the msgs from kafka")
 
     @task  
-    def start_message():  
+    def start_message(pool="default_pool"):  
         print("Initiating the CSV processing workflow.")  
 
     @task
@@ -46,7 +46,7 @@ def process_csv_files():
         print("getting basic info from the query")
 
     @task
-    def fetch_file_from_s3(file_key: str) -> pd.DataFrame:
+    def fetch_file_from_s3(file_key: str, pool="default_pool") -> pd.DataFrame:
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)
         response = s3.get_object(Bucket=S3_BUCKET_NAME, Key=file_key)
         df = pd.read_csv(response['Body'])
@@ -54,30 +54,30 @@ def process_csv_files():
         return df
 
     @task
-    def process_email(df: pd.DataFrame) -> pd.DataFrame:
+    def process_email(df: pd.DataFrame, pool="default_pool") -> pd.DataFrame:
         emails = pd.DataFrame(list(df['Email Address'].apply(validate_email)))
         df = pd.concat([df, emails], join = 'inner', axis=1) 
         df = df.loc[:, ~df.columns.duplicated()]
         return df[df["validation_status"] == "valid"]
 
     @task
-    def process_profiles(df: pd.DataFrame) -> pd.DataFrame:
+    def process_profiles(df: pd.DataFrame, pool="default_pool") -> pd.DataFrame:
         return pd.DataFrame(list(df['LinkedIn Contact Profile URL'].apply(search_linkedin_profile)))
     
     @task
-    def process_activities(df: pd.DataFrame) -> pd.DataFrame:  
+    def process_activities(df: pd.DataFrame, pool="default_pool") -> pd.DataFrame:  
         return pd.DataFrame(list(df['LinkedIn Contact Profile URL'].apply(search_linkedin_activity)))
     
     @task
-    def process_companies(df: pd.DataFrame) -> pd.DataFrame:  
+    def process_companies(df: pd.DataFrame, pool="default_pool") -> pd.DataFrame:  
         return pd.DataFrame(list(df['LinkedIn Company Profile URL'].apply(search_linkedin_company)))
 
     @task  
-    def process_websites(df: pd.DataFrame) -> pd.DataFrame:  
+    def process_websites(df: pd.DataFrame, pool="default_pool") -> pd.DataFrame:  
         return pd.DataFrame(list(df['Website'].apply(serper_website)))
 
     @task  
-    def synthesize_results(file_key: str, df_emails: pd.DataFrame, profiles: pd.DataFrame, activities: pd.DataFrame, websites: pd.DataFrame, companies: pd.DataFrame) -> None:  
+    def synthesize_results(file_key: str, df_emails: pd.DataFrame, profiles: pd.DataFrame, activities: pd.DataFrame, websites: pd.DataFrame, companies: pd.DataFrame, pool="default_pool") -> None:  
         df = pd.concat([df_emails, profiles, activities, websites, companies], join = 'inner', axis=1) 
         df = df.loc[:, ~df.columns.duplicated()]
         csv_buffer = df.to_csv(index=False)  
@@ -88,7 +88,7 @@ def process_csv_files():
 
 
     @task  
-    def end_message():  
+    def end_message(pool="default_pool"):  
         print("CSV processing workflow completed.")  
 
     s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
