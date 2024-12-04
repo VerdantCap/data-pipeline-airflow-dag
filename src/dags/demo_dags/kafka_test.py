@@ -1,6 +1,6 @@
 from airflow import DAG
 from datetime import datetime, timedelta
-from airflow_provider_kafka.operators.consume_from_topic import ConsumeFromTopicOperator
+from airflow.providers.apache.kafka.operator.consume import ConsumeFromTopicOperator
 def func(message, prefix=None):
     print(message)
 
