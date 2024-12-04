@@ -112,15 +112,15 @@ def process_csv_files():
     #     synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_keys[i], df_emails, profiles, activities, companies, websites)
     #     end = end_message.override(task_id=f"end_task_{i}")()
     start = start_message()
-    df = fetch_file_from_s3.expand(file_keys)
-    df_emails = process_email.expand(df)
-    profiles = process_profiles.expand(df_emails)
-    activities = process_activities.expand(df_emails)
-    companies = process_companies.expand(df_emails)
-    websites = process_websites.expand(df_emails)
-    synthesis = synthesize_results.expand(file_keys, df_emails, profiles, activities, companies, websites)
+    df = fetch_file_from_s3.expand(file_key = file_keys)
+    df_emails = process_email.expand(df = df)
+    profiles = process_profiles.expand(df_emails = df_emails)
+    activities = process_activities.expand(df_emails = df_emails)
+    companies = process_companies.expand( df_emails = df_emails)
+    websites = process_websites.expand(df_emails = df_emails)
+    synthesis = synthesize_results.expand(file_key = file_keys, df_emails = df_emails, profiles = profiles, activities = activities, companies = companies, websites = websites)
     end = end_message()
-    consumer >> start
+    consumer >> file_keys>>start
     start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
 
 dag_instance = process_csv_files()  
