@@ -19,9 +19,9 @@ OUTPUT_DIRECTORY = "air-byte-sync-destination/zoomiinfo-validate/"
 # aws_secret_key = Variable.get("AWS_SECRET_KEY", default_var="your_default_secret_key")  
 # aws_session_token = Variable.get("AWS_SESSION_TOKEN", default_var="you_default_secret_key")
 
-aws_access_key="ASIA4RCAOLGLFSB7RZMP"
-aws_secret_key="E2FV6nDhgXjBtDN0KCpBbsh0qgOiqF9fPkB7eWAo"
-aws_session_token="IQoJb3JpZ2luX2VjEEEaCXVzLWVhc3QtMiJIMEYCIQCW9GabHhcJ7/HvLI+hWJT4FlY78ynYdzaCbxvX//so3QIhAP8dvZXJVB+eosoNpOZ0cQyFVzG8YVWjjdoyXAaRSTz1KqMDCOr//////////wEQABoMODYxMjc2MTAxMDE0Igyyk7SlpHUPDfa8BVcq9wIkEyKs3Kb1huiSuzav37qPTRKskOlMxTR+Mj/Aly/zo2IBGpUpt7zGyBbqqSfEEjKOu+RUCYymOc3dxi2vnZOf5eU8CuMPc9ff2icYiZlhCeOGNZEf/wH8DUOhscisui0VRkp57ZDGM8i8OjttTeRfw1V5TFMP7AyUG3Tm7GQ8T0Zf2Xc1RmKpnzsuc43nPwTVCW5PNeHpIe6FZXPNKhYgKKJO3PDhZuct2hhydZmNk9A3m23QBno5Fc+G3Fi76zT7zWy17LmXUog2jpDP8oBw9hTDCy1CYQtsql9R3p4dlxyJ277EvoDyNXLZZMdLKoSadg5+kcg2yN7dKlxL5U2VnA1qd0lDgC/5TBaLuGjyezRqHVj+BXCDKAMOtALqhLNi1+frnzvmYn5F/pLTC+UdxNRMAmXD8Z06E057M3eLGaZzEPVwyJ4qevikBBxWbOH8D+bexAZxl+Pdz/93GY/63FEa50CdZH7CDvd/r6S+U9tQOZqBGeUwtKjAugY6pQHs6YD0GaINd9IuhjTb2HSMMnKEpYhcyekp9OH3nIjCkzaUt2IbuAF6d1CspVD6FJa1aAyhvaVqSZuxne/TDO92eZWUlFomYLmQgd5hKkcfBGANdOmS+2LfsGV0FQvTX4JFrFxNKAXvfVk92Np8MFaQlWXYc+BBySE3zx0VovMWJBwYLakDGcPG6dbgZzE2ccl5TPHwkQjq+cXN2mAk5rFv02l2WTg="
+aws_access_key="ASIA4RCAOLGLGOKM4NRL"
+aws_secret_key="UZeXlfSTHkyZ92/PKyS2EqWs/vnpg+aHIjMyzk2V"
+aws_session_token="IQoJb3JpZ2luX2VjEEUaCXVzLWVhc3QtMiJHMEUCIQCLV8guCr904/rj1dE4Fd+J4ZgGnGKni81oDhPqMx/I2AIgdAFq9Fn0RTapn5eg4d+7KmEopmZ0UhltnGy15yga8ukqowMI7v//////////ARAAGgw4NjEyNzYxMDEwMTQiDPb5twkmkyGMbLpxDSr3AuAjSeoqKdiRwZ1be9h2fXB9CnL63tE/zI+oluakjmC/sIPrh4wiBFKQVAw/A+IigWlec3M1/NAPEmhCwslAQwwSFyj+kfWLJvFpLV86koG2ry7CKrfZ/5RE/pNKRMCnK22iWzPYP+SOy7a5gC7iNFjUxUT4Irpc5QAxriGW+ammk17EZVEngHd9gtKXYj8xWeeQzxmTjh74A5aOa/1JOIyssqhJx0YE7kIjsZyUUumN2K+I9fkzqRkIz+YmhwG8gqGFnVrayp7kTYt8tGPxThpJ1lUEA9qouCrGxaf1eLg5V6oPITrUnlEtN7JXjHMLKJzgiF4Guq93BQyvVT6QHXnRZ1rRScNe8xUzN3cgHg9a19u37hZY802qj0ISF+WUmfzd7emegA4CWlHoyIYQD5IwcRSEVojxHCWlwnGLXksPvYUi6hCy/Cnkbv9jLlGOD0ehgxbOYK3twJYQpdKSUPqirgg25IrIaGi/zmkUMEaoUfk4SZIPkjCArsG6BjqmAbYDOks4b7/VAdqEUQhpzHpSF+Ry5zyqtDiwdgWsWzOru6AS2oxIDmYTLCuUyLSu3YJbSdvtlRMxG3k9z+hkr8EmxM+WwgfQNWQ6zOIjbxyWWEJdun31/cwmMmA7SyUIWQDoefLTLH9Far/+sNwzOW6p1gdemVy8FHeGvxenKKr5jl8Z1yTXx6p+3Ap5IpwGtoCKK/J+0uCzQANJvLNk50p4ezZaAIo="
 
 @dag(  
     dag_id=DAG_ID,  
@@ -33,9 +33,17 @@ aws_session_token="IQoJb3JpZ2luX2VjEEEaCXVzLWVhc3QtMiJIMEYCIQCW9GabHhcJ7/HvLI+hW
 )  
 def process_csv_files():  
 
+    @task
+    def consumer_kafka():
+        print("Getting the msgs from kafka")
+
     @task  
     def start_message():  
         print("Initiating the CSV processing workflow.")  
+
+    @task
+    def process_query():
+        print("getting basic info from the query")
 
     @task
     def fetch_file_from_s3(file_key: str) -> pd.DataFrame:
@@ -83,20 +91,26 @@ def process_csv_files():
     def end_message():  
         print("CSV processing workflow completed.")  
 
-    s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
-    response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
-    file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
+    @task
+    def whole_task():
+        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
+        response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
+        file_keys = [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
 
-    for i, file_key in enumerate(file_keys):
-        start = start_message.override(task_id=f"start_task_{i}")()  
-        df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
-        df_emails = process_email.override(task_id=f"valied_email_{i}")(df)
-        profiles = process_profiles.override(task_id=f"process_profile_{i}")(df_emails)  
-        activities = process_activities.override(task_id=f"process_activities_{i}")(df_emails)  
-        companies = process_companies.override(task_id=f"process_companies_{i}")(df_emails)
-        websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
-        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
-        end = end_message.override(task_id=f"end_task_{i}")()
-        start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
+        for i, file_key in enumerate(file_keys):
+            start = start_message.override(task_id=f"start_task_{i}")()
+
+            df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
+            df_emails = process_email.override(task_id=f"valied_email_{i}")(df)
+            profiles = process_profiles.override(task_id=f"process_profile_{i}")(df_emails)  
+            activities = process_activities.override(task_id=f"process_activities_{i}")(df_emails)  
+            companies = process_companies.override(task_id=f"process_companies_{i}")(df_emails)
+            websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
+            synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
+            end = end_message.override(task_id=f"end_task_{i}")()
+            start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
+    consumer = consumer_kafka()
+    whole_ta = whole_task()
+    consumer >> whole_ta
 
 dag_instance = process_csv_files()  
