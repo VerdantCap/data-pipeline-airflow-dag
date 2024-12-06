@@ -91,30 +91,22 @@ def process_csv_files():
     def end_message(pool="default_pool"):  
         print("CSV processing workflow completed.")  
 
-    @task
-    def fetch_file_keys():
-        s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
-        response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
-        file_keys =  [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
-        return file_keys
-    @task
-    def processing_files(file_keys):
-        for i, file_key in enumerate(file_keys):            
-            df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
-            df_emails = process_email.override(task_id=f"valied_email_{i}")(df)
-            profiles = process_profiles.override(task_id=f"process_profile_{i}")(df_emails)  
-            activities = process_activities.override(task_id=f"process_activities_{i}")(df_emails)  
-            companies = process_companies.override(task_id=f"process_companies_{i}")(df_emails)
-            websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
-            synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
-            
-            df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis
-    start = start_message()
-    file_keys = fetch_file_keys()
-    process_files = processing_files(file_keys)
-    end = end_message()
-    start >> file_keys >> process_files >> end
+    # @task
+    # def fetch_file_keys():
+    s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, aws_session_token=aws_session_token)  
+    response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_DIRECTORY)  
+    file_keys =  [obj['Key'] for obj in response.get('Contents', []) if obj['Key'].endswith('.csv')]
 
-    
+    for i, file_key in enumerate(file_keys):
+        start = start_message.override(task_id=f"start_task_{i}")()
+        df = fetch_file_from_s3.override(task_id=f"fecth_file_{i}")(file_key)
+        df_emails = process_email.override(task_id=f"valied_email_{i}")(df)
+        profiles = process_profiles.override(task_id=f"process_profile_{i}")(df_emails)  
+        activities = process_activities.override(task_id=f"process_activities_{i}")(df_emails)  
+        companies = process_companies.override(task_id=f"process_companies_{i}")(df_emails)
+        websites = process_websites.override(task_id=f"process_websites_{i}")(df_emails)  
+        synthesis = synthesize_results.override(task_id=f"synthesis_task_{i}")(file_key, df_emails, profiles, activities, companies, websites)
+        end = end_message.override(task_id=f"end_task_{i}")()
+        start >> df >>  df_emails >> [ profiles, activities, companies, websites] >> synthesis >> end 
 
 dag_instance = process_csv_files()  
